@@ -16,9 +16,9 @@ In particular, riepete does not support:
 
 - gauges with `-`/`+` modifiers.
 
-The gauges values will still be parsed and accepted by riepete, but
-they will be mapped into metrics with the received positive/negative
-value and sent to riemann.
+  Gauges will still be parsed and accepted by riepete, but they will
+  be mapped into metrics with the received positive/negative value and
+  sent to riemann.
 
 ## Metrics send to riemann
 
