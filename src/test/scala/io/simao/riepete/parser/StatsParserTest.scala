@@ -64,7 +64,7 @@ class StatsParserTest extends FunSuite with PropertyChecks {
 
   test("parses the correct number of metrics in one package") {
     forAll { (a: Double, b: Int, c: Double, timerName: String) =>
-      whenever(!timerName.contains(":")) {
+      whenever(!timerName.contains(":") && !timerName.contains("|")) {
         val repr =
           s"""mycounter:$a|c
           |$timerName:$b|c
