@@ -1,4 +1,4 @@
-# RIemann rePEaTEr
+# Riepete - Riemann Repeater
 
 Receives [statsd](https://github.com/etsy/statsd/) packets and repeats
 them to [riemann](http://riemann.io/).
