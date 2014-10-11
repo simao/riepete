@@ -2,6 +2,8 @@
 
 Receives [statsd](https://github.com/etsy/statsd/) packets and repeats
 them to [riemann](http://riemann.io/).
+
+[![Build Status](https://travis-ci.org/simao/riepete.png?branch=master)](https://travis-ci.org/simao/riepete)
  
 ## Supported metrics
 
