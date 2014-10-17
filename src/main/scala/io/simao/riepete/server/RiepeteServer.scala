@@ -21,25 +21,23 @@ class RiepeteServer(implicit config: Config) extends Actor with ActorLogging {
     IO(Udp) ! Udp.Bind(self, localAddress)
   }
 
-  val statsdHandler = {
-    system.actorOf(StatsReceiver.props(), "StatsDHandler")
-  }
+  lazy val statsdHandler = system.actorOf(StatsReceiver.props(), "StatsDHandler")
 
   def receive: Receive = {
     case Udp.Bound(local) =>
       log.info(s"UDP server ready on ${local.getHostName}:${local.getPort}")
-      context become ready(sender())
+      context become ready(sender(), statsdHandler)
 
     case Udp.CommandFailed(cmd)  =>
       log.error("Failed to start server: " + cmd)
       context stop self
   }
 
-  def ready(socket: ActorRef): Receive = {
+  def ready(socket: ActorRef, statsdHandler: ActorRef): Receive = {
     case Udp.Received(data, remote) =>
       val dataStr = data.decodeString("utf-8")
       log.debug(s"Received UDP MSG: $dataStr from ${remote.getAddress}")
-      statsdHandler ! StatsdMetric(dataStr)
+      statsdHandler ! StatsdMetric(dataStr, remote.getHostName)
 
     case Udp.Unbound =>
       log.error("UDP Unbound from server socket")

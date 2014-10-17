@@ -1,8 +1,7 @@
 package io.simao.riepete.metric_receivers
 
-import akka.actor.{Props, ActorLogging, Actor}
-import akka.event.Logging
-import io.simao.riepete.messages.{MultiRiepeteMetric, RiepeteMetric}
+import akka.actor.{Actor, ActorLogging, Props}
+import io.simao.riepete.messages.MultiRiepeteMetric
 
 object ConsoleReceiver {
   def props() = Props[ConsoleReceiver]

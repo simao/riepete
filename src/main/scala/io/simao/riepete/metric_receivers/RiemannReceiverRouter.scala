@@ -27,7 +27,7 @@ class RiemannReceiverRouter(implicit config: Config) extends Actor with ActorLog
 
   context.system.scheduler.schedule(5 seconds, 5 seconds)(outputStats())
 
-  // TODO: Maybe use dyn'amic resizer?
+  // TODO: Maybe use dynamic resizer?
   var router = {
     context.actorOf(
       RoundRobinPool(8)

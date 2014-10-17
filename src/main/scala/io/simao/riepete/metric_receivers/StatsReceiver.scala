@@ -20,14 +20,14 @@ class StatsReceiver(implicit config: Config) extends Actor with ActorLogging {
   )
 
   def receive: Receive = {
-    case StatsdMetric(metric_repr) =>
-      handleMetric(metric_repr)
+    case StatsdMetric(metric_repr, hostname) =>
+      handleMetric(metric_repr, hostname)
   }
 
-  def handleMetric(repr: String) = {
+  def handleMetric(repr: String, hostname: String) = {
     StatsParser(repr) match {
       case Success(m) =>
-        val metrics = m.map(RiepeteMetric)
+        val metrics = m.map(x => RiepeteMetric(x, hostname))
         val multi_metric_msg = MultiRiepeteMetric(metrics)
 
         for(r <- receivers)
