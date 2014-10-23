@@ -1,9 +1,9 @@
-package io.simao.riepete.metric_receivers
+package io.simao.riepete.metric_receivers.riemann
 
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorLogging}
-import io.simao.riepete.messages.RiepeteMetric
+import io.simao.riepete.messages.Metric
 
 import scala.util.Try
 
@@ -16,9 +16,9 @@ case class Sent(count: Long) extends ConnectionStat
 case class SentFinished(duration: Long) extends ConnectionStat
 case class Acked(count: Long) extends ConnectionStat
 case class Dropped(count: Long) extends ConnectionStat
-case class Failed(metrics: Seq[RiepeteMetric], cause: Throwable) extends ConnectionStat
+case class Failed(metrics: Seq[Metric], cause: Throwable) extends ConnectionStat
 
-class ConnectionStatsKeeper extends Actor with ActorLogging {
+class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
   val metrics = new MetricRegistry()
 
   JmxReporter.forRegistry(metrics)

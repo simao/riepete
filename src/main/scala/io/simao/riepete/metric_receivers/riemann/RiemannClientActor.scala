@@ -1,4 +1,4 @@
-package io.simao.riepete.metric_receivers
+package io.simao.riepete.metric_receivers.riemann
 
 import java.net.{InetAddress, InetSocketAddress}
 import java.util.concurrent.TimeUnit
@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import com.aphyr.riemann.Proto.{Event, Msg}
 import com.aphyr.riemann.client.RiemannClient
-import io.simao.riepete.messages.{MultiRiepeteMetric, RiepeteMetric}
+import io.simao.riepete.messages.{Metric, MetricSeq}
 import io.simao.riepete.server.Config
 
 import scala.collection.JavaConversions._
@@ -19,13 +19,13 @@ case object HeartBeatAlarm
 class AckNotReceivedException extends Exception
 class PromiseTimedOutException extends Exception
 
-object RiemannSender {
+object RiemannClientActor {
   def props()(implicit config: Config) = {
-    Props(new RiemannSender)
+    Props(new RiemannClientActor)
   }
 }
 
-class RiemannSender(implicit config: Config) extends Actor with ActorLogging {
+class RiemannClientActor(implicit config: Config) extends Actor with ActorLogging {
   import context.system
   implicit val executionContext = system.dispatchers.lookup("riemann-sender-dispatcher")
 
@@ -49,7 +49,7 @@ class RiemannSender(implicit config: Config) extends Actor with ActorLogging {
     riemannReceiver ! Connected(self)
 
     {
-      case MultiRiepeteMetric(metrics) =>
+      case MetricSeq(metrics) =>
         sendToRiemann(client, metrics)
 
       case HeartBeatAlarm =>
@@ -105,7 +105,7 @@ class RiemannSender(implicit config: Config) extends Actor with ActorLogging {
     }
   }
 
-  def handleRiemannResponse(metrics: Seq[RiepeteMetric])(msg: Option[Msg]) =
+  def handleRiemannResponse(metrics: Seq[Metric])(msg: Option[Msg]) =
     msg match {
       case Some(m) if m.getOk =>
         riemannReceiver ! Acked(metrics.size)
@@ -118,11 +118,11 @@ class RiemannSender(implicit config: Config) extends Actor with ActorLogging {
         log.error("Promise timed out")
     }
 
-  def handleRiemannFailure(metrics: Seq[RiepeteMetric]): PartialFunction[Throwable, Unit] = {
+  def handleRiemannFailure(metrics: Seq[Metric]): PartialFunction[Throwable, Unit] = {
       case t => riemannReceiver ! Failed(metrics, t)
   }
 
-  private def sendToRiemann(client: RiemannClient, metrics: Seq[RiepeteMetric]) = {
+  private def sendToRiemann(client: RiemannClient, metrics: Seq[Metric]) = {
     if (metrics.length > 0) {
       log.debug(s"Sending ${metrics.length} events to riemann")
 
@@ -158,7 +158,7 @@ class RiemannSender(implicit config: Config) extends Actor with ActorLogging {
   }
 
 
-  private def encodedMetrics(metrics: Seq[RiepeteMetric]) = {
+  private def encodedMetrics(metrics: Seq[Metric]) = {
     val events = metrics.map(x => x.statsdMetric).map(m => {
       Event.newBuilder
         .setHost(InetAddress.getLocalHost.getHostName)

@@ -11,7 +11,6 @@ object RiepeteKernelBuild extends Build {
 
   lazy val RiepeteKernel = Project(
     id = "riepete-kernel",
-    // base = file("project/riepete-kernel"),
     base = file("."),
     settings = defaultSettings ++ AkkaKernelPlugin.distSettings ++ Seq(
       libraryDependencies ++= Dependencies.all,
@@ -20,6 +19,7 @@ object RiepeteKernelBuild extends Build {
       distMainClass in Dist := "akka.kernel.Main io.simao.riepete.server.RiepeteKernel"
     )
   )
+
 
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := Organization,

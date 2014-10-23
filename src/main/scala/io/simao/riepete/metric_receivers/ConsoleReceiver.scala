@@ -1,7 +1,7 @@
 package io.simao.riepete.metric_receivers
 
 import akka.actor.{Actor, ActorLogging, Props}
-import io.simao.riepete.messages.MultiRiepeteMetric
+import io.simao.riepete.messages.MetricSeq
 
 object ConsoleReceiver {
   def props() = Props[ConsoleReceiver]
@@ -9,7 +9,7 @@ object ConsoleReceiver {
 
 class ConsoleReceiver extends Actor with ActorLogging {
   def receive = {
-    case MultiRiepeteMetric(metrics) =>
+    case MetricSeq(metrics) =>
       for(m <- metrics)
         log.debug(m.toString)
   }

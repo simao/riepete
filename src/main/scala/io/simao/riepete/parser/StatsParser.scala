@@ -3,16 +3,16 @@ package io.simao.riepete.parser
 import scala.util.Try
 import scala.util.parsing.combinator.JavaTokenParsers
 
-sealed abstract class Metric {
+sealed abstract class ParsedMetric {
   def name: String
   def value: Double
   def metricType = this.getClass.getSimpleName.toLowerCase
 }
 
-case class Counter(name: String, value: Double, sampleRate: Option[Double]) extends Metric
-case class Gauge(name: String, value: Double) extends Metric
-case class Timer(name: String, value: Double) extends Metric
-case class Meter(name: String, value: Double) extends Metric
+case class Counter(name: String, value: Double, sampleRate: Option[Double]) extends ParsedMetric
+case class Gauge(name: String, value: Double) extends ParsedMetric
+case class Timer(name: String, value: Double) extends ParsedMetric
+case class Meter(name: String, value: Double) extends ParsedMetric
 
 
 class StatsParser extends JavaTokenParsers {
@@ -53,7 +53,7 @@ class StatsParser extends JavaTokenParsers {
 
   override val skipWhitespace = false
 
-  def parse(metric_str_repr: String): Try[Seq[Metric]] = {
+  def parse(metric_str_repr: String): Try[Seq[ParsedMetric]] = {
     parseAll(multipleMetrics, metric_str_repr) match {
       case Success(result, _) => scala.util.Success(result)
       case NoSuccess(msg, _) => scala.util.Failure(new Exception(msg))
@@ -62,7 +62,7 @@ class StatsParser extends JavaTokenParsers {
 }
 
 object StatsParser {
-  def apply(metric_str_repr: String): Try[Seq[Metric]] = {
+  def apply(metric_str_repr: String): Try[Seq[ParsedMetric]] = {
     (new StatsParser).parse(metric_str_repr)
   }
 }

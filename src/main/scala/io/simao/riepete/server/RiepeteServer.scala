@@ -5,7 +5,6 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.io.{IO, Udp}
 import io.simao.riepete.messages.StatsdMetric
-import io.simao.riepete.metric_receivers.StatsReceiver
 
 object RiepeteServer {
   def props()(implicit config: Config) = {
@@ -21,7 +20,7 @@ class RiepeteServer(implicit config: Config) extends Actor with ActorLogging {
     IO(Udp) ! Udp.Bind(self, localAddress)
   }
 
-  lazy val statsdHandler = system.actorOf(StatsReceiver.props(), "StatsDHandler")
+  lazy val statsdHandler = system.actorOf(StatsdMetricHandler.props(), "StatsDHandler")
 
   def receive: Receive = {
     case Udp.Bound(local) =>

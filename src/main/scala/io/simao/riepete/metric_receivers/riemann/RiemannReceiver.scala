@@ -1,7 +1,7 @@
-package io.simao.riepete.metric_receivers
+package io.simao.riepete.metric_receivers.riemann
 
 import akka.actor._
-import io.simao.riepete.messages.{MultiRiepeteMetric, RiepeteMetric}
+import io.simao.riepete.messages.{Metric, MetricSeq}
 import io.simao.riepete.server.Config
 
 import scala.concurrent.duration._
@@ -21,7 +21,7 @@ case object BackingOff extends State
 case object Sending extends State
 
 sealed trait Data
-final case class CurrentData(riemann: Option[ActorRef], buffer: Seq[RiepeteMetric], currentBackOff: Option[FiniteDuration] = None) extends Data
+final case class CurrentData(riemann: Option[ActorRef], buffer: Seq[Metric], currentBackOff: Option[FiniteDuration] = None) extends Data
 
 object RiemannReceiver {
   def props(statsKeeper: ActorRef)(implicit config: Config) = {
@@ -33,7 +33,7 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
   override val supervisorStrategy = SupervisorStrategy.stoppingStrategy
 
   def createRiemannSender() = {
-    context.actorOf(RiemannSender.props(), "riemannSender")
+    context.actorOf(RiemannClientActor.props(), "riemannSender")
   }
 
   startWith(Idle, CurrentData(None, Vector.empty), Some(100 millis))
@@ -69,12 +69,12 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
     case Event(StateTimeout, _) =>
       goto(Connecting)
 
-    case Event(MultiRiepeteMetric(metrics), cd: CurrentData) =>
+    case Event(MetricSeq(metrics), cd: CurrentData) =>
       goto(Connecting) using cd.copy(buffer = cd.buffer ++ metrics)
   }
 
   when(Connecting) {
-    case Event(MultiRiepeteMetric(metrics), cd @ CurrentData(_, b, _)) =>
+    case Event(MetricSeq(metrics), cd @ CurrentData(_, b, _)) =>
       stay() using cd.copy(buffer = b ++ metrics)
 
     case Event(Connected(riemann), cd @ CurrentData(_, b, _)) =>
@@ -86,7 +86,7 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
   }
 
   when(BackingOff) {
-    case Event(MultiRiepeteMetric(metrics), _) =>
+    case Event(MetricSeq(metrics), _) =>
       statsKeeper ! Dropped(metrics.size)
       log.debug("Backing off, dropping {} metrics", metrics)
       stay()
@@ -99,7 +99,7 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
   }
 
   when(Sending) {
-    case Event(MultiRiepeteMetric(metrics), cd @ CurrentData(Some(riemann), b, _)) =>
+    case Event(MetricSeq(metrics), cd @ CurrentData(Some(riemann), b, _)) =>
       stay() using cd.copy(buffer = b ++ metrics)
 
     case Event(Flush, cd @ CurrentData(Some(riemann), b, _)) =>
@@ -126,9 +126,9 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
     context stop riemann
   }
 
-  def flush(riemann: ActorRef, buffer: Seq[RiepeteMetric]): Seq[RiepeteMetric] = {
+  def flush(riemann: ActorRef, buffer: Seq[Metric]): Seq[Metric] = {
     if (buffer.size > 0) {
-      riemann ! MultiRiepeteMetric(buffer)
+      riemann ! MetricSeq(buffer)
     } else
       log.debug("Buffer is empty, nothing flushed")
 

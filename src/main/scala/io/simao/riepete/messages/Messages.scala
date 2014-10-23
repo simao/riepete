@@ -1,16 +1,16 @@
 package io.simao.riepete.messages
 
-import io.simao.riepete.parser.Metric
+import io.simao.riepete.parser.ParsedMetric
 
 case class StatsdMetric(payload: String, hostname: String)
 
-case class RiepeteMetric(statsdMetric: Metric, host: String) {
-  def this(statsdMetric: Metric) = this(statsdMetric, "unknown")
+case class Metric(statsdMetric: ParsedMetric, host: String) {
+  def this(statsdMetric: ParsedMetric) = this(statsdMetric, "unknown")
 }
 
-object RiepeteMetric {
-  def apply(statsdMetric: Metric) = new RiepeteMetric(statsdMetric)
+object Metric {
+  def apply(statsdMetric: ParsedMetric) = new Metric(statsdMetric)
 }
 
-case class MultiRiepeteMetric(metrics: Seq[RiepeteMetric])
+case class MetricSeq(metrics: Seq[Metric])
 

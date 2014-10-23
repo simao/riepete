@@ -1,19 +1,20 @@
-package io.simao.riepete.metric_receivers
+package io.simao.riepete.server
 
 import akka.actor.{Actor, ActorLogging, Props}
-import io.simao.riepete.messages.{MultiRiepeteMetric, RiepeteMetric, StatsdMetric}
+import io.simao.riepete.messages.{Metric, MetricSeq, StatsdMetric}
+import io.simao.riepete.metric_receivers.ConsoleReceiver
+import io.simao.riepete.metric_receivers.riemann.RiemannReceiverRouter
 import io.simao.riepete.parser.StatsParser
-import io.simao.riepete.server.Config
 
 import scala.util.{Failure, Success}
 
-object StatsReceiver {
+object StatsdMetricHandler {
   def props()(implicit config: Config) = {
-    Props(new StatsReceiver)
+    Props(new StatsdMetricHandler)
   }
 }
 
-class StatsReceiver(implicit config: Config) extends Actor with ActorLogging {
+class StatsdMetricHandler(implicit config: Config) extends Actor with ActorLogging {
   lazy val receivers = List(
     context.actorOf(ConsoleReceiver.props(), "consoleReceiver"),
     context.actorOf(RiemannReceiverRouter.props(), "riemannReceiverRouter")
@@ -27,8 +28,8 @@ class StatsReceiver(implicit config: Config) extends Actor with ActorLogging {
   def handleMetric(repr: String, hostname: String) = {
     StatsParser(repr) match {
       case Success(m) =>
-        val metrics = m.map(x => RiepeteMetric(x, hostname))
-        val multi_metric_msg = MultiRiepeteMetric(metrics)
+        val metrics = m.map(x => Metric(x, hostname))
+        val multi_metric_msg = MetricSeq(metrics)
 
         for(r <- receivers)
           r ! multi_metric_msg

@@ -2,7 +2,8 @@ package io.simao.riepete.metric_receivers
 
 import akka.actor._
 import akka.testkit._
-import io.simao.riepete.messages.{MultiRiepeteMetric, RiepeteMetric}
+import io.simao.riepete.messages.{MetricSeq, Metric}
+import io.simao.riepete.metric_receivers.riemann._
 import io.simao.riepete.parser.Counter
 import io.simao.riepete.server.Config
 import org.scalatest.{FunSuiteLike, OneInstancePerTest}
@@ -18,9 +19,9 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
     override def createRiemannSender() = testRiemannSender.ref
   })
 
-  val singleMetric = RiepeteMetric(Counter("hi", 1, None))
+  val singleMetric = Metric(Counter("hi", 1, None))
 
-  val testMetric = MultiRiepeteMetric(List(singleMetric))
+  val testMetric = MetricSeq(List(singleMetric))
 
   test("is connected after receiving Connected confirmation") {
     testRiemannSender.expectMsg(Connect)
@@ -62,22 +63,22 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
     receiver ! Connected(testRiemannSender.ref)
 
     assert(receiver.stateName === Sending)
-    testRiemannSender.expectMsg(MultiRiepeteMetric(List(singleMetric, singleMetric)))
+    testRiemannSender.expectMsg(MetricSeq(List(singleMetric, singleMetric)))
   }
 
   test("metrics are buffering in the correct order, arrival order") {
     testRiemannSender.expectMsg(Connect)
     receiver ! Connected(testRiemannSender.ref)
 
-    val m1 = RiepeteMetric(Counter("hi", 1, None))
-    val m2 = RiepeteMetric(Counter("hi", 2, None))
-    val m3 = RiepeteMetric(Counter("hi", 3, None))
+    val m1 = Metric(Counter("hi", 1, None))
+    val m2 = Metric(Counter("hi", 2, None))
+    val m3 = Metric(Counter("hi", 3, None))
 
-    receiver ! MultiRiepeteMetric(List(m3))
-    receiver ! MultiRiepeteMetric(List(m2))
-    receiver ! MultiRiepeteMetric(List(m1))
+    receiver ! MetricSeq(List(m3))
+    receiver ! MetricSeq(List(m2))
+    receiver ! MetricSeq(List(m1))
 
-    testRiemannSender.expectMsg(MultiRiepeteMetric(List(m3, m2, m1)))
+    testRiemannSender.expectMsg(MetricSeq(List(m3, m2, m1)))
   }
 
   test("drops metrics when backing off") {
@@ -93,7 +94,7 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
 
     receiver ! Connected(testRiemannSender.ref)
 
-    val metrics = MultiRiepeteMetric(List(singleMetric, singleMetric))
+    val metrics = MetricSeq(List(singleMetric, singleMetric))
 
     receiver ! metrics
 

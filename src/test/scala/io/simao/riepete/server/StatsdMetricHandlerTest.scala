@@ -1,18 +1,17 @@
-package io.simao.riepete.metric_receivers
+package io.simao.riepete.server
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{EventFilter, TestKit, TestProbe}
-import io.simao.riepete.messages.{MultiRiepeteMetric, RiepeteMetric, StatsdMetric}
+import io.simao.riepete.messages.{Metric, MetricSeq, StatsdMetric}
 import io.simao.riepete.parser.Counter
-import io.simao.riepete.server.Config
 import org.scalatest.FunSuiteLike
 
-class StatsReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSuiteLike {
+class StatsdMetricHandlerTest extends TestKit(ActorSystem("testSystem")) with FunSuiteLike {
   implicit val riepete_config = Config.default
 
   val aggregator_probe = TestProbe()
 
-  def testReceiver = system.actorOf(Props(new StatsReceiver {
+  def testReceiver = system.actorOf(Props(new StatsdMetricHandler {
     override lazy val receivers = List(aggregator_probe.ref)
   }))
 
@@ -27,6 +26,6 @@ class StatsReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSuite
 
     val metric = Counter("hi", 99.00, None)
 
-    aggregator_probe.expectMsg(MultiRiepeteMetric(List(RiepeteMetric(metric, "simao.io"))))
+    aggregator_probe.expectMsg(MetricSeq(List(Metric(metric, "simao.io"))))
   }
 }

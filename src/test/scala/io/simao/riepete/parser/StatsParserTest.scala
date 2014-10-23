@@ -16,10 +16,12 @@ class StatsParserTest extends FunSuite with PropertyChecks {
 
   test("parses counter name") {
     forAll { (name: String, value: Int) =>
-      val repr = s"$name:$value|c"
-      val metric = singleMetric(repr).asInstanceOf[Counter]
-      assert(metric.name === name)
-      assert(metric.value === value)
+      whenever(!name.contains(":") && !name.contains("|")) {
+        val repr = s"$name:$value|c"
+        val metric = singleMetric(repr).asInstanceOf[Counter]
+        assert(metric.name === name)
+        assert(metric.value === value)
+      }
     }
   }
 
