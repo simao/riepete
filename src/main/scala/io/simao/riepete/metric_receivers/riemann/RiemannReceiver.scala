@@ -61,7 +61,7 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
         case CurrentData(_, _, t) =>
           val nextTimeout = t.getOrElse(1 second)
           setTimer("backoffTimeout", BackOffTimeout, nextTimeout)
-          log.warning("Backing off for {} seconds", nextTimeout.toSeconds)
+          log.warning(s"Backing off for ${nextTimeout.toSeconds} seconds")
       }
   }
 

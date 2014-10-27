@@ -41,7 +41,7 @@ object RiepeteKernelBuild extends Build {
 
 object Dependencies {
   object Versions {
-    val Akka      = "2.3.3"
+    val Akka      = "2.3.6"
   }
 
   val all = List(
