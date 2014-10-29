@@ -29,6 +29,8 @@ class RiemannClientActor(implicit config: Config) extends Actor with ActorLoggin
   import context.system
   implicit val executionContext = system.dispatchers.lookup("riemann-sender-dispatcher")
 
+  val riemannReceiver = context.parent
+
   lazy val riemannClient = {
     val remote = new InetSocketAddress(config.riemann_host, config.riemann_port)
     RiemannClient.tcp(remote)
@@ -36,12 +38,11 @@ class RiemannClientActor(implicit config: Config) extends Actor with ActorLoggin
 
   @scala.throws[Exception](classOf[Exception])
   override def postStop(): Unit = {
+    log.info("riemannClient terminating")
     if (riemannClient.isConnected) {
       riemannClient.disconnect()
     }
   }
-
-  val riemannReceiver = context.parent
 
   def ready(client: RiemannClient): Receive = {
     system.scheduler.schedule(5 seconds, 5 seconds, self, HeartBeatAlarm)

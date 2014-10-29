@@ -5,9 +5,10 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorLogging}
 import io.simao.riepete.messages.Metric
 
+import scala.collection.immutable
 import scala.util.Try
 
-case object StatsRequest
+case object GetResetIntervalStats
 
 import com.codahale.metrics._
 
@@ -21,33 +22,42 @@ case class Failed(metrics: Seq[Metric], cause: Throwable) extends ConnectionStat
 class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
   val metrics = new MetricRegistry()
 
+  var intervalStats = immutable.Map[String, Long]()
+
   JmxReporter.forRegistry(metrics)
     .convertDurationsTo(TimeUnit.MILLISECONDS)
     .build().start()
+
+  @scala.throws[Exception](classOf[Exception])
+  override def preStart(): Unit = {
+    super.preStart()
+    resetInterval()
+  }
 
   def receive: Receive = {
     case m: ConnectionStat => m match {
       case Sent(count) =>
         statsIncrement("sent", count)
-        metrics.histogram("sentH").update(count)
+        metrics.histogram("sentSize").update(count)
       case SentFinished(duration) =>
         metrics.timer("sendTime").update(duration, TimeUnit.MILLISECONDS)
       case Acked(count) => statsIncrement("acked", count)
-      case Failed(q, _) => statsIncrement("error", q.size)
+      case Failed(q, _) => statsIncrement("ioerror", q.size)
       case Dropped(count) => statsIncrement("dropped", count)
     }
 
-    case StatsRequest =>
+    case GetResetIntervalStats =>
       sender() ! statsMap()
+      resetInterval()
   }
 
   private def statsMap() = {
-    Map("sent" -> getCounter("sent"),
-        "sentH" -> getHistogram("sentH"),
+    Map("totalSent" -> getCounter("sent"),
         "acked" -> getCounter("acked"),
         "sendTime" -> getTimer("sendTime"),
-        "errors" -> getCounter("errors"),
-        "dropped" -> getCounter("dropped")
+        "dropped" -> getCounter("dropped"),
+        "intervalAcked" -> intervalStats("acked"),
+        "intervalSent" -> intervalStats("sent")
         )
   }
 
@@ -73,7 +83,13 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
       } getOrElse "n/a"
   }
 
+  private def resetInterval() = {
+    intervalStats = immutable.Map("acked" -> 0l, "sent" -> 0l)
+  }
+
   private def statsIncrement(key: String, inc: Long = 1) = {
     metrics.counter(key).inc(inc)
+    val c = intervalStats.getOrElse(key, 0l)
+    intervalStats = intervalStats.updated(key, c + inc)
   }
 }

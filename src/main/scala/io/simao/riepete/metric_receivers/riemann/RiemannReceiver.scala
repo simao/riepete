@@ -32,8 +32,14 @@ object RiemannReceiver {
 class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Actor with ActorLogging with FSM[State, Data] {
   override val supervisorStrategy = SupervisorStrategy.stoppingStrategy
 
+  override def postStop(): Unit = {
+    super.postStop()
+    log.info("Terminating")
+  }
+
   def createRiemannSender() = {
-    context.actorOf(RiemannClientActor.props(), "riemannSender")
+    context.actorOf(RiemannClientActor.props(),
+      s"riemannClient-${self.path.name}")
   }
 
   startWith(Idle, CurrentData(None, Vector.empty), Some(100 millis))
