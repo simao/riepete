@@ -1,13 +1,13 @@
 import akka.sbt.AkkaKernelPlugin
-import akka.sbt.AkkaKernelPlugin.{Dist, distJvmOptions, outputDirectory}
+import akka.sbt.AkkaKernelPlugin.{Dist, distJvmOptions, distMainClass, outputDirectory}
 import sbt.Keys._
 import sbt._
-import akka.sbt.AkkaKernelPlugin.distMainClass
 
 object RiepeteKernelBuild extends Build {
   val Organization = "io.simao"
   val Version      = "0.0.1"
-  val ScalaVersion = "2.11.1"
+  val ScalaVersion = "2.11.2"
+  val Name = "riepete"
 
   lazy val RiepeteKernel = Project(
     id = "riepete-kernel",
@@ -20,11 +20,11 @@ object RiepeteKernelBuild extends Build {
     )
   )
 
-
-  lazy val buildSettings = Defaults.defaultSettings ++ Seq(
+  lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq(
     organization := Organization,
     version      := Version,
     scalaVersion := ScalaVersion,
+    name         := Name,
     crossPaths   := false,
     organizationName := "simao.io",
     organizationHomepage := Some(url("https://simao.io"))
@@ -48,11 +48,15 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-kernel" % Versions.Akka,
     "com.typesafe.akka" %% "akka-slf4j"  % Versions.Akka,
     "com.typesafe.akka" %% "akka-actor" % Versions.Akka,
+    "com.typesafe.akka" %% "akka-testkit" % Versions.Akka % "test",
 
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1",
     "io.argonaut" %% "argonaut" % "6.0.4",
     "io.dropwizard.metrics" % "metrics-core" % "3.1.0",
-    "com.aphyr" % "riemann-java-client" % "0.2.10"
+    "com.aphyr" % "riemann-java-client" % "0.2.10",
+
+    "org.scalatest" %% "scalatest" % "2.2.0" % "test",
+    "org.scalacheck" %% "scalacheck" % "1.11.6" % "test"
   )
 }
