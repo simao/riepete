@@ -7,6 +7,7 @@ import io.simao.riepete.server.Config
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+
 sealed trait ControlMsg
 case class Connected(riemann: ActorRef) extends ControlMsg
 case object Connect extends ControlMsg
@@ -17,11 +18,10 @@ case object ConnectTimeout extends ControlMsg
 sealed trait State
 case object Idle extends State
 case object Connecting extends State
-case object BackingOff extends State
 case object Sending extends State
 
 sealed trait Data
-final case class CurrentData(riemann: Option[ActorRef], buffer: Seq[Metric], currentBackOff: Option[FiniteDuration] = None) extends Data
+final case class CurrentData(riemann: Option[ActorRef], buffer: Seq[Metric]) extends Data
 
 object RiemannReceiver {
   def props(statsKeeper: ActorRef)(implicit config: Config) = {
@@ -30,14 +30,12 @@ object RiemannReceiver {
 }
 
 class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Actor with ActorLogging with FSM[State, Data] {
-  override val supervisorStrategy = SupervisorStrategy.stoppingStrategy
-
   override def postStop(): Unit = {
     super.postStop()
     log.info("Terminating")
   }
 
-  def createRiemannSender() = {
+  lazy val riemannSender = {
     context.actorOf(RiemannClientActor.props(),
       s"riemannClient-${self.path.name}")
   }
@@ -53,22 +51,12 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
   }
 
   onTransition {
-    case _ -> Connecting =>
+    case m -> Connecting =>
       tryConnect()
       setTimer("connectTimeout", ConnectTimeout, 5 seconds)
 
     case Connecting -> _ =>
       cancelTimer("connectTimeout")
-  }
-
-  onTransition {
-    case _ -> BackingOff =>
-      nextStateData match {
-        case CurrentData(_, _, t) =>
-          val nextTimeout = t.getOrElse(1 second)
-          setTimer("backoffTimeout", BackOffTimeout, nextTimeout)
-          log.warning(s"Backing off for ${nextTimeout.toSeconds} seconds")
-      }
   }
 
   when(Idle) {
@@ -80,56 +68,38 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
   }
 
   when(Connecting) {
-    case Event(MetricSeq(metrics), cd @ CurrentData(_, b, _)) =>
+    case Event(MetricSeq(metrics), cd @ CurrentData(_, b)) =>
       stay() using cd.copy(buffer = b ++ metrics)
 
-    case Event(Connected(riemann), cd @ CurrentData(_, b, _)) =>
-      goto(Sending) using CurrentData(Some(riemann), b, None)
+    case Event(Connected(riemann), cd @ CurrentData(_, b)) =>
+      goto(Sending) using CurrentData(Some(riemann), b)
 
-    case Event(ConnectTimeout | Terminated(_), CurrentData(_, b, t)) =>
-      val nextTimeout = nextBackOffTimeout(t)
-      goto(BackingOff) using CurrentData(None, b, Some(nextTimeout))
-  }
-
-  when(BackingOff) {
-    case Event(MetricSeq(metrics), _) =>
-      statsKeeper ! Dropped(metrics.size)
-      log.debug("Backing off, dropping {} metrics", metrics)
-      stay()
-
-    case Event(BackOffTimeout, cd) =>
-      goto(Connecting) using cd
-
-    case Event(Failed(metrics, cause), cd: CurrentData) =>
-      stay() using cd.copy(buffer = cd.buffer ++ metrics)
+    case Event(ConnectTimeout, CurrentData(_, b)) =>
+      log.warning("Connect timeout")
+      goto(Idle) forMax(1 second)
   }
 
   when(Sending) {
-    case Event(MetricSeq(metrics), cd @ CurrentData(Some(riemann), b, _)) =>
+    case Event(MetricSeq(metrics), cd @ CurrentData(Some(riemann), b)) =>
       stay() using cd.copy(buffer = b ++ metrics)
 
-    case Event(Flush, cd @ CurrentData(Some(riemann), b, _)) =>
+    case Event(Flush, cd @ CurrentData(Some(riemann), b)) =>
       val newBuffer = flush(riemann, b)
       stay() using cd.copy(buffer = newBuffer)
 
-    case Event(Terminated(riemannSender), CurrentData(_, b, _)) =>
-      goto(BackingOff) using CurrentData(None, b, Some(1 second))
-
-    case Event(Failed(metrics, cause), cd @ CurrentData(Some(riemann), b, _)) =>
-      disconnect(riemann, cause)
-      goto(BackingOff) using CurrentData(None, metrics ++ b)
+    case Event(f @ Failed(metrics, cause), cd @ CurrentData(Some(riemann), b)) =>
+      statsKeeper ! f
+      reconnect(riemann, cause)
+      stay()
   }
 
   def tryConnect() {
-    val riemannSender = createRiemannSender()
-    context watch riemannSender
     riemannSender ! Connect
   }
 
-  def disconnect(riemann: ActorRef, cause: Throwable) = {
-    log.error(cause, "Disconnecting from riemann")
-    context unwatch riemann
-    context stop riemann
+  def reconnect(riemann: ActorRef, cause: Throwable) = {
+    log.error(cause, "reconnecting to riemann")
+    riemann ! Reconnect
   }
 
   def flush(riemann: ActorRef, buffer: Seq[Metric]): Seq[Metric] = {
@@ -141,14 +111,13 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
     Vector.empty
   }
 
-  def nextBackOffTimeout(currentTimeout: Option[FiniteDuration]) = {
-    (currentTimeout.getOrElse(1 second) * 2).min(30 seconds)
-  }
-
   whenUnhandled {
     case Event(c: ConnectionStat, _) =>
       statsKeeper ! c
       stay()
+
+    case Event(Restarted, _) =>
+      goto(Idle) forMax(1 second)
   }
 
   onTransition {

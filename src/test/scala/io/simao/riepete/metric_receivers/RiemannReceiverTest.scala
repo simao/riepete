@@ -16,7 +16,7 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
   val statsKeeper = TestProbe()
 
   val receiver = TestFSMRef(new RiemannReceiver(statsKeeper.ref) {
-    override def createRiemannSender() = testRiemannSender.ref
+    override lazy val riemannSender = testRiemannSender.ref
   })
 
   val singleMetric = Metric(Counter("hi", 1, None))
@@ -31,25 +31,25 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
     assert(receiver.stateName == Sending)
   }
 
-  test("backs of if connection dies") {
+  test("idles if it receives a Started message") {
     testRiemannSender.expectMsg(Connect)
 
     receiver ! Connected(testRiemannSender.ref)
 
     assert(receiver.stateName == Sending)
 
-    testRiemannSender.ref ! PoisonPill
+    receiver ! Restarted
 
-    assert(receiver.stateName == BackingOff)
+    assert(receiver.stateName == Idle)
   }
 
-  test("backs off if connection times out") {
-    receiver.setState(Connecting, CurrentData(None, Vector(), None))
+  test("idles if connection times out") {
+    receiver.setState(Connecting, CurrentData(None, Vector()))
 
     assert(receiver.isTimerActive("connectTimeout") === true)
     receiver ! ConnectTimeout
 
-    assert(receiver.stateName === BackingOff)
+    assert(receiver.stateName === Idle)
   }
 
   test("buffers metrics while connecting") {
@@ -81,14 +81,6 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
     testRiemannSender.expectMsg(MetricSeq(List(m3, m2, m1)))
   }
 
-  test("drops metrics when backing off") {
-    receiver.setState(BackingOff, CurrentData(None, Vector(), None))
-
-    receiver ! testMetric
-
-    statsKeeper.expectMsg(Dropped(1))
-  }
-
   test("forwards multi riepete metrics") {
     testRiemannSender.expectMsg(Connect)
 
@@ -101,26 +93,18 @@ class RiemannReceiverTest extends TestKit(ActorSystem("testSystem")) with FunSui
     testRiemannSender.expectMsg(metrics)
   }
 
-  test("backs off if sending fails (receives a Failed msg)") {
+  test("forces a reconnect when sending fails") {
     testRiemannSender.expectMsg(Connect)
 
     receiver ! Connected(testRiemannSender.ref)
 
     receiver ! Failed(List(), new Exception("error occured"))
 
-    assert(receiver.stateName == BackingOff)
+    testRiemannSender.expectMsg(Reconnect)
   }
 
   test("forward stats to statsKeeper") {
     receiver ! Sent(100)
     statsKeeper.expectMsg(Sent(100))
-  }
-
-  test("retries after when backing off and riemannSender dies") {
-    receiver.setState(BackingOff, CurrentData(None, Vector(), None))
-
-    assert(receiver.isTimerActive("backoffTimeout") === true)
-
-    testRiemannSender.expectMsg(Connect)
   }
 }

@@ -15,6 +15,8 @@ import scala.concurrent.{Future, blocking}
 import scala.language.postfixOps
 
 case object HeartBeatAlarm
+case object Reconnect
+case object Restarted
 
 class AckNotReceivedException extends Exception
 class PromiseTimedOutException extends Exception
@@ -36,12 +38,18 @@ class RiemannClientActor(implicit config: Config) extends Actor with ActorLoggin
     RiemannClient.tcp(remote)
   }
 
-  @scala.throws[Exception](classOf[Exception])
-  override def postStop(): Unit = {
-    log.info("riemannClient terminating")
-    if (riemannClient.isConnected) {
-      riemannClient.disconnect()
-    }
+
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    super.preRestart(reason, message)
+    log.info("riemannClient restarting")
+    try riemannClient.disconnect()
+    catch { case _: Throwable => Unit }
+  }
+
+
+  override def postRestart(reason: Throwable): Unit = {
+    super.postRestart(reason)
+    riemannReceiver ! Restarted
   }
 
   def ready(client: RiemannClient): Receive = {
@@ -50,6 +58,9 @@ class RiemannClientActor(implicit config: Config) extends Actor with ActorLoggin
     riemannReceiver ! Connected(self)
 
     {
+      case Reconnect =>
+        riemannClient.reconnect()
+
       case MetricSeq(metrics) =>
         sendToRiemann(client, metrics)
 
@@ -61,8 +72,14 @@ class RiemannClientActor(implicit config: Config) extends Actor with ActorLoggin
   def receive: Receive = {
     case Connect =>
       tryConnect(sender())
+
+    case MetricSeq(m) =>
+      log.warning("riemann sender is not yet ready")
+      riemannReceiver ! Dropped(m.size)
+
     case _ =>
       log.warning("riemann sender is not yet ready")
+
   }
 
   def tryConnect(upstream: ActorRef) = {

@@ -13,6 +13,7 @@ case object GetResetIntervalStats
 import com.codahale.metrics._
 
 sealed trait ConnectionStat
+case class Received(count: Long) extends ConnectionStat
 case class Sent(count: Long) extends ConnectionStat
 case class SentFinished(duration: Long) extends ConnectionStat
 case class Acked(count: Long) extends ConnectionStat
@@ -36,6 +37,8 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
 
   def receive: Receive = {
     case m: ConnectionStat => m match {
+      case Received(count) =>
+        statsIncrement("received", count)
       case Sent(count) =>
         statsIncrement("sent", count)
         metrics.histogram("sentSize").update(count)
@@ -53,11 +56,14 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
 
   private def statsMap() = {
     Map("totalSent" -> getCounter("sent"),
+        "totalReceived" -> getCounter("received"),
         "acked" -> getCounter("acked"),
         "sendTime" -> getTimer("sendTime"),
         "dropped" -> getCounter("dropped"),
+        "ioerrors" -> getCounter("ioerror"),
         "intervalAcked" -> intervalStats("acked"),
-        "intervalSent" -> intervalStats("sent")
+        "intervalSent" -> intervalStats("sent"),
+        "intervalIoError" -> intervalStats("ioerror")
         )
   }
 
@@ -84,7 +90,7 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
   }
 
   private def resetInterval() = {
-    intervalStats = immutable.Map("acked" -> 0l, "sent" -> 0l)
+    intervalStats = immutable.Map("acked" -> 0l, "sent" -> 0l, "ioerror" -> 0l)
   }
 
   private def statsIncrement(key: String, inc: Long = 1) = {
