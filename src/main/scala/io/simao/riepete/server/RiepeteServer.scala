@@ -3,6 +3,7 @@ package io.simao.riepete.server
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.io.Inet.SO.ReceiveBufferSize
 import akka.io.{IO, Udp}
 import io.simao.riepete.messages.StatsdMetric
 
@@ -15,9 +16,11 @@ object RiepeteServer {
 class RiepeteServer(implicit config: Config) extends Actor with ActorLogging {
   import context.system
 
+  val udpRcvBufferSize = 1073741824
+
   override def preStart(): Unit = {
     val localAddress = new InetSocketAddress(config.bind_ip, config.bind_port)
-    IO(Udp) ! Udp.Bind(self, localAddress)
+    IO(Udp) ! Udp.Bind(self, localAddress, List(ReceiveBufferSize(udpRcvBufferSize)))
   }
 
   lazy val statsdHandler = system.actorOf(StatsdMetricHandler.props(), "StatsDHandler")

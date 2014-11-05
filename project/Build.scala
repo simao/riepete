@@ -5,7 +5,7 @@ import sbt._
 
 object RiepeteKernelBuild extends Build {
   val Organization = "io.simao"
-  val Version      = "0.0.1"
+  val Version      = "0.0.2"
   val ScalaVersion = "2.11.2"
   val Name = "riepete"
 
@@ -20,7 +20,7 @@ object RiepeteKernelBuild extends Build {
     )
   )
 
-  lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq(
+  lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := Organization,
     version      := Version,
     scalaVersion := ScalaVersion,
