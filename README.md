@@ -130,7 +130,7 @@ sending images to another c3.large instance where riepete was
 deployed.
 
 Riepete was able to handle and forward to riemann about 12000
-events/second, before the os started to drop UDP packets.
+events/second, before the OS started dropping incoming UDP packets.
 
 Benchmarks are just benchmarks and this one certainly has it's
 problems and can be improved, increasing UDP buffer sizes for
