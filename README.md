@@ -39,6 +39,29 @@ statsd UDP packet will result in a metric being sent to riemann. If
 you need some kind of aggregation you will need to do it in
 riemann. See the next section for an example on how to do this.
 
+## Installing
+
+The latest version is available in `releases/riepete-latest.tgz`.
+
+You can extract this file into a directory and just run
+`bin/start`. This will start riepete in the foregrou with the default
+settings. Here is one liner if you just want to try running it:
+
+```
+wget https://github.com/simao/riepete/releases/download/v0.0.2/riepete-0.0.2.tgz
+tar xvf riepete-0.0.2.tgz
+cd riepete-0.0.2
+bin/start
+```
+
+You can adjust settings editing `riepete/config/riepete.json`.
+
+You can read more about deploying an akka app in
+[this post](https://simao.io/blog/2014/10/10/deploying-an-akka-app)
+
+Alternatively, you can clone this repo and built riepete with `sbt
+dist`.
+
 ## Example riemann.config file
 
 Since riepete does not aggregate any metrics, you will need to do this
@@ -112,30 +135,6 @@ Benchmarks are just benchmarks and this one certainly has it's
 problems and can be improved, increasing UDP buffer sizes for
 example. I will explore these possibilities in future releases. For
 now 12000 event/s is enough for the purposes `riepete` is being used.
-
-## Installing
-
-The latest version is available in `releases/riepete-latest.tgz`.
-
-You can extract this file into a directory and just run
-`bin/start`. This will start riepete in the foregrou with the default
-settings. Here is one liner if you just want to try running it:
-
-```
-wget https://github.com/simao/riepete/releases/download/v0.0.2/riepete-0.0.2.tgz
-mkdir riepete
-tar xvf --strip-components=1 -C riepete
-cd riepete
-bin/start
-```
-
-You can adjust settings editing `riepete/config/riepete.json`.
-
-You can read more about deploying an akka app in
-[this post](https://simao.io/blog/2014/10/10/deploying-an-akka-app)
-
-Alternatively, you can clone this repo and built riepete with `sbt
-dist`.
 
 ## Contributing
 
