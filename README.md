@@ -95,23 +95,47 @@ this simple code:
                         (rate 5 index))))
 ```
 
+## Benchmarking
+
+In the `benchmark` directory you will find a small clojure app that
+can be used to send a large number of requests to riepete using a non
+uniform distribution.
+
+This benchmark was executed running on an ec2 c3.large instance
+sending images to another c3.large instance where riepete was
+deployed.
+
+Riepete was able to handle and forward to riemann about 12000
+events/second, before the os started to drop UDP packets.
+
+Benchmarks are just benchmarks and this one certainly has it's
+problems and can be improved, increasing UDP buffer sizes for
+example. I will explore these possibilities in future releases. For
+now 12000 event/s is enough for the purposes `riepete` is being used.
+
 ## Installing
 
-Currently, the easiest way to deploy `riepete` is to build it with
-`sbt` and deploy it using `scp`, `fab`, or something
-equivalent. [This post](https://simao.io/blog/2014/10/10/deploying-an-akka-app)
-might help you deploy it to production.
+The latest version is available in `releases/riepete-latest.tgz`.
 
-To create a directory with a compiled version of `riepete`, follow the
-following steps:
+You can extract this file into a directory and just run
+`bin/start`. This will start riepete in the foregrou with the default
+settings. Here is one liner if you just want to try running it:
 
-    git clone <repo>
-    cd riepete
-    sbt dist
-    cd target/riepete-dist
+```
+wget https://github.com/simao/riepete/releases/download/v0.0.2/riepete-0.0.2.tgz
+mkdir riepete
+tar xvf --strip-components=1 -C riepete
+cd riepete
+bin/start
+```
 
-Then to run `riepete`, just run `bin/start`. This should start
-`riepete` in the foreground.
+You can adjust settings editing `riepete/config/riepete.json`.
+
+You can read more about deploying an akka app in
+[this post](https://simao.io/blog/2014/10/10/deploying-an-akka-app)
+
+Alternatively, you can clone this repo and built riepete with `sbt
+dist`.
 
 ## Contributing
 
