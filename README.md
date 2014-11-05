@@ -41,7 +41,8 @@ riemann. See the next section for an example on how to do this.
 
 ## Installing
 
-The latest version is available in `releases/riepete-latest.tgz`.
+The latest version is available at
+https://github.com/simao/riepete/releases/latest
 
 You can extract this file into a directory and just run
 `bin/start`. This will start riepete in the foregrou with the default
