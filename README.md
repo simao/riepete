@@ -42,11 +42,11 @@ riemann. See the next section for an example on how to do this.
 ## Installing
 
 The latest version is available at
-https://github.com/simao/riepete/releases/latest
+[releases/latest](https://github.com/simao/riepete/releases/latest)
 
 You can extract this file into a directory and just run
 `bin/start`. This will start riepete in the foregrou with the default
-settings. Here is one liner if you just want to try running it:
+settings. Here a simple way to start:
 
 ```
 wget https://github.com/simao/riepete/releases/download/v0.0.2/riepete-0.0.2.tgz
