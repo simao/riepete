@@ -31,9 +31,9 @@ App 4 --+       +-->| graphite |
                     +----------+
 ```
 
-Since riemann actually gives you the same features as `statsd` and
-much more, you can decide to stop using it entirely, also without
-changing your app:
+`riemann` actually gives you the same features as `statsd` and much
+more, you can decide to stop using it entirely, also without changing
+your app:
 
 ```
 App 1 --+
@@ -47,8 +47,8 @@ App 4 --+           | graphite |<----+
 ```
 
 Since `riepete` understands statsd, you still don't need to change
-your applications at this point and you can do so incrementally or not
-at all.
+your applications at this point and you can do so incrementally, or
+not at all.
 
 ## Supported metrics
 
