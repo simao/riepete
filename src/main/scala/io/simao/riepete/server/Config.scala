@@ -33,8 +33,8 @@ object Config {
 
   def apply(content: String): Config = {
     Parse.decodeEither[JsonConfig](content) match {
-      case -\/(msg) => throw new DeserializeConfigException("Error parsing config file: " + msg)
       case \/-(config) => new Config(config)
+      case -\/(msg) => throw new DeserializeConfigException("Error parsing config file: " + msg)
     }
   }
 }

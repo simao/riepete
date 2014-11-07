@@ -46,9 +46,9 @@ App 4 --+           | graphite |<----+
                     +----------+
 ```
 
-Since `riepete` "talks statsd", you still don't need to change your
-applications at this point and you can do so incrementally or not at
-all.
+Since `riepete` understands statsd, you still don't need to change
+your applications at this point and you can do so incrementally or not
+at all.
 
 ## Supported metrics
 
