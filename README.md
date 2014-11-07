@@ -4,7 +4,52 @@ Receives [statsd](https://github.com/etsy/statsd/) packets and repeats
 them to [riemann](http://riemann.io/).
 
 [![Build Status](https://travis-ci.org/simao/riepete.png?branch=master)](https://travis-ci.org/simao/riepete)
- 
+
+# Purpose
+
+If you are using `statsd` to aggregate your metrics you changed your
+applications to send an UDP packet every time you want a metric to be
+generated.
+
+The purpose of `riepete` is to help with the migration to riemann
+without the need to change your app to send metrics to riemann instead of `statsd`.
+
+This way you can have both `statsd`, `graphite` (or whatever backend
+you have for statsd) and `riemann` running in parallel without
+changing your applications.
+
+One possible setup is illustrated in the following diagram:
+
+```
+App 1 --+
+        |   +--------+        +---------+         +---------+
+App 2 --+-->+ statsd |------->| riepete |-------->| riemann |
+        |   +---+----+        +---------+         +---------+
+App 3 --+       |
+        |       |   +----------+
+App 4 --+       +-->| graphite |
+                    +----------+
+```
+
+Since riemann actually gives you the same features as `statsd` and
+much more, you can decide to stop using it entirely, also without
+changing your app:
+
+```
+App 1 --+
+        |   +---------+         +---------+
+App 2 --+-->| riepete |-------->| riemann |
+        |   +---------+         +----+----+
+App 3 --+                            |
+        |           +----------+     |
+App 4 --+           | graphite |<----+
+                    +----------+
+```
+
+Since `riepete` "talks statsd", you still don't need to change your
+applications at this point and you can do so incrementally or not at
+all.
+
 ## Supported metrics
 
 Currently riepete supports as subset of statsd metrics as defined in
@@ -80,7 +125,7 @@ the number of events received per second in that interval.
   (with {:metric 1 :state "ok" :service "riepete-events/sec"}
         (rate 5 index)))
 ```
-   
+
 ### Calculate rate of events for each statsd metric type
 
 This generates a new event every 5 seconds with `:metric` set to the
@@ -147,4 +192,3 @@ welcome!
 ## Author
 
 - Simão Mata - [simao.io](https://simao.io)
-
