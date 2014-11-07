@@ -65,7 +65,7 @@ In particular, riepete does not support:
   be mapped into metrics with the received positive/negative value and
   sent to riemann.
 
-## Metrics send to riemann
+## Metrics sent to riemann
 
 For each metric received by riepete a new event is sent to riemann.
 
