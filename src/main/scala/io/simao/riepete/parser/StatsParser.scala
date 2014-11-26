@@ -53,16 +53,16 @@ class StatsParser extends JavaTokenParsers {
 
   override val skipWhitespace = false
 
-  def parse(metric_str_repr: String): Try[Seq[ParsedMetric]] = {
+  def parse[T <: ParsedMetric](metric_str_repr: String): Try[List[T]] = {
     parseAll(multipleMetrics, metric_str_repr) match {
-      case Success(result, _) => scala.util.Success(result)
+      case Success(result, _) => scala.util.Success(result.asInstanceOf[List[T]])
       case NoSuccess(msg, _) => scala.util.Failure(new Exception(msg))
     }
   }
 }
 
 object StatsParser {
-  def apply(metric_str_repr: String): Try[Seq[ParsedMetric]] = {
+  def apply[T <: ParsedMetric](metric_str_repr: String): Try[List[T]] = {
     (new StatsParser).parse(metric_str_repr)
   }
 }

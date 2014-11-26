@@ -4,10 +4,9 @@ import org.scalatest.FunSuite
 import org.scalatest.prop.PropertyChecks
 
 class StatsParserTest extends FunSuite with PropertyChecks {
+  def singleMetric[T](repr: String): T = StatsParser(repr).get.apply(0)
 
-  def singleMetric(repr: String) = {
-    StatsParser(repr).get.apply(0)
-  }
+  def counterFrom(repr: String): Counter = singleMetric(repr)
 
   test("fails on unknown metric") {
     val metric = StatsParser("mycounter:|z")
@@ -18,7 +17,7 @@ class StatsParserTest extends FunSuite with PropertyChecks {
     forAll { (name: String, value: Int) =>
       whenever(!name.contains(":") && !name.contains("|")) {
         val repr = s"$name:$value|c"
-        val metric = singleMetric(repr).asInstanceOf[Counter]
+        val metric = counterFrom(repr)
         assert(metric.name === name)
         assert(metric.value === value)
       }
@@ -28,7 +27,7 @@ class StatsParserTest extends FunSuite with PropertyChecks {
   test("parses double values") {
     forAll { (value: Double) =>
       val repr = s"mycounter:$value|c"
-      val metric = singleMetric(repr).asInstanceOf[Counter]
+      val metric = counterFrom(repr)
       assert(metric.name === "mycounter")
       assert(metric.value === value)
     }
@@ -37,14 +36,14 @@ class StatsParserTest extends FunSuite with PropertyChecks {
   test("parses integer values") {
     forAll { (value: Int) =>
       val repr = s"mycounter:$value|c"
-      val metric = singleMetric(repr).asInstanceOf[Counter]
+      val metric = counterFrom(repr)
       assert(metric.name === "mycounter")
       assert(metric.value === value)
     }
   }
 
   test("can parse a simple counter") {
-    val metric = singleMetric("mycounter:1|c").asInstanceOf[Counter]
+    val metric = counterFrom("mycounter:1|c")
 
     assert(metric.name === "mycounter")
     assert(metric.value === 1.0)
@@ -73,7 +72,7 @@ class StatsParserTest extends FunSuite with PropertyChecks {
           |mycounter:$c|c
           |""".stripMargin
 
-        val metrics = StatsParser(repr).get
+        val metrics: List[Counter] = StatsParser(repr).get
 
         assert(metrics.length == 3)
         assert(metrics(1).name === timerName)
@@ -85,7 +84,7 @@ class StatsParserTest extends FunSuite with PropertyChecks {
   test("parse a counter with sample rate") {
     forAll { (value: Double, rate: Double) =>
       val repr = s"mycounter:$value|c|@$rate"
-      val metric = singleMetric(repr).asInstanceOf[Counter]
+      val metric = counterFrom(repr)
 
       assert(metric.name === "mycounter")
       assert(metric.value === value)
@@ -97,7 +96,7 @@ class StatsParserTest extends FunSuite with PropertyChecks {
     forAll { (value: Double, name: String) =>
       whenever(!name.contains(":")) {
         val repr = s"$name:$value|g"
-        val metric = singleMetric(repr).asInstanceOf[Gauge]
+        val metric: Gauge = singleMetric(repr)
 
         assert(metric.name === name)
         assert(metric.value === value)
@@ -106,14 +105,14 @@ class StatsParserTest extends FunSuite with PropertyChecks {
   }
 
   test("parse a timer") {
-    val metric = singleMetric("my.timer.wat:2122.0|ms").asInstanceOf[Timer]
+    val metric: Timer = singleMetric("my.timer.wat:2122.0|ms")
 
     assert(metric.name === "my.timer.wat")
     assert(metric.value === 2122.0)
   }
 
   test("parse a meter") {
-    val metric = singleMetric("my.meter.wat:10|m").asInstanceOf[Meter]
+    val metric: Meter = singleMetric("my.meter.wat:10|m")
 
     assert(metric.name === "my.meter.wat")
     assert(metric.value === 10.0)
