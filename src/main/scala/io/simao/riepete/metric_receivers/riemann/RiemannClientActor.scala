@@ -13,6 +13,7 @@ import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.concurrent.{Future, blocking}
 import scala.language.postfixOps
+import scala.util.Try
 
 case object HeartBeatAlarm
 case object Reconnect
@@ -38,12 +39,10 @@ class RiemannClientActor(implicit config: Config) extends Actor with ActorLoggin
     RiemannClient.tcp(remote)
   }
 
-
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
     log.info("riemannClient restarting")
-    try riemannClient.disconnect()
-    catch { case _: Throwable => Unit }
+    Try(riemannClient.disconnect())
   }
 
 
