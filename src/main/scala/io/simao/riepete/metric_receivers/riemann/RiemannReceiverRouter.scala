@@ -43,7 +43,7 @@ class RiemannReceiverRouter(implicit config: Config) extends Actor with ActorLog
   private def outputStats() = {
     router.ask(GetRoutees)(1 second)
       .mapTo[Routees]
-      .map { case Routees(r) => log.info(s"Receivers: ${r.size}")}
+      .map { case Routees(r) => log.debug(s"Receivers: ${r.size}")}
 
     statsKeeper
       .ask(GetResetIntervalStats)(1 second)

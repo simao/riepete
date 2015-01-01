@@ -122,7 +122,7 @@ class RiemannReceiver(statsKeeper: ActorRef)(implicit config: Config) extends Ac
 
   onTransition {
     case a -> b =>
-      log.info("{} => {}", a, b)
+      log.debug("{} => {}", a, b)
   }
 
   initialize()

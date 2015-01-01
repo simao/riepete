@@ -41,6 +41,7 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
         statsIncrement("received", count)
       case Sent(count) =>
         statsIncrement("sent", count)
+        metrics.meter("sentPerSecond").mark(count)
         metrics.histogram("sentSize").update(count)
       case SentFinished(duration) =>
         metrics.timer("sendTime").update(duration, TimeUnit.MILLISECONDS)
@@ -55,24 +56,23 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
   }
 
   private def statsMap() = {
-    Map("totalSent" -> getCounter("sent"),
-        "totalReceived" -> getCounter("received"),
-        "acked" -> getCounter("acked"),
-        "sendTime" -> getTimer("sendTime"),
-        "dropped" -> getCounter("dropped"),
-        "ioerrors" -> getCounter("ioerror"),
-        "intervalAcked" -> intervalStats("acked"),
-        "intervalSent" -> intervalStats("sent"),
-        "intervalIoError" -> intervalStats("ioerror")
+    Map("totalSent" → getCounter("sent"),
+        "totalReceived" → getCounter("received"),
+        "acked" → getCounter("acked"),
+        "sendTime" → getTimer("sendTime"),
+        "dropped" → getCounter("dropped"),
+        "ioerrors" → getCounter("ioerror"),
+        "intervalAcked" → intervalStats("acked"),
+        "intervalSent" → intervalStats("sent"),
+        "intervalIoError" → intervalStats("ioerror"),
+        "sent/sec" → getMeter("sentPerSecond")
         )
   }
 
-  private def getHistogram(key: String) = {
-    Try(metrics.getHistograms.get(key)) map { h =>
-      val snapshot = h.getSnapshot
-      val mean = snapshot.getMean.toLong
-      val stddev = snapshot.getStdDev
-      f"$mean (σ=$stddev%2.2f)"
+  private def getMeter(key: String): String = {
+    Try(metrics.getMeters.get(key)) map { m ⇒
+      val rate = m.getOneMinuteRate / 60
+      f"$rate%2.2f"
     } getOrElse "n/a"
   }
 
@@ -90,7 +90,7 @@ class RiemannConnectionStatsKeeper extends Actor with ActorLogging {
   }
 
   private def resetInterval() = {
-    intervalStats = immutable.Map("acked" -> 0l, "sent" -> 0l, "ioerror" -> 0l)
+    intervalStats = immutable.Map("acked" → 0l, "sent" → 0l, "ioerror" → 0l)
   }
 
   private def statsIncrement(key: String, inc: Long = 1) = {

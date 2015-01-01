@@ -51,10 +51,8 @@ class RiepeteServer(implicit config: Config) extends Actor with ActorLogging {
 object RiepeteServerApp extends App {
   import akka.actor.ActorSystem
 
-  override def main(args: Array[String]) {
-    implicit val riepete_config = args.lift(0).map(Config(_)).getOrElse(Config.default)
-    implicit val system = ActorSystem("riepeteActorSystem")
+  implicit val riepete_config = args.lift(0).map(Config(_)).getOrElse(Config.default)
+  implicit val system = ActorSystem("riepeteActorSystem")
 
-    system.actorOf(RiepeteServer.props(), "StatsDServer")
-  }
+  system.actorOf(RiepeteServer.props(), "StatsDServer")
 }
